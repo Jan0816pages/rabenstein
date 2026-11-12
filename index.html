@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RABENSTEIN: SCHATTENFLUT – Danmaku x Auto-Attack ARPG</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <div id="game-container">
+    <canvas id="game-canvas"></canvas>
+    <div id="low-hp-overlay"></div>
+
+    <!-- START MENU, CHARACTER SELECTION & CHARACTER CREATION OVERLAY -->
+    <div id="main-menu-overlay" class="active">
+      <div class="main-menu-backdrop"></div>
+
+      <!-- SCREEN 1: TITLE SCREEN WITH START BUTTON -->
+      <div id="menu-screen-title" class="menu-screen active">
+        <div class="title-card">
+          <div class="title-eyebrow">CHRONIKEN DER DÜSTERMARK</div>
+          <h1 class="game-main-title">RABENSTEIN</h1>
+          <div class="game-sub-title">SCHATTENFLUT</div>
+          <p class="title-lore">
+            Die Schattenflut erhebt sich aus der Verfluchten Krypta. Verteidige die Festung Rabenstein und bezwinge Malakor den Blutdämon.
+          </p>
+          <button id="btn-main-start" class="menu-primary-btn is-loading" disabled onclick="window.GameUI.onStartButtonClick()">
+            LÄDT...
+          </button>
+          <div id="title-save-status" class="title-save-hint">Lokales Speichersystem aktiv (Bis zu 5 Helden-Plätze)</div>
+        </div>
+        <div id="asset-loading-box" class="asset-loading-box">
+          <div class="asset-loading-track">
+            <div id="asset-loading-bar" class="asset-loading-bar"></div>
+          </div>
+          <div id="asset-loading-text" class="asset-loading-text">Lade Grafiken &amp; Welt...</div>
+        </div>
+      </div>
+
+      <!-- SCREEN 2: CHARACTER SELECTION (UP TO 5 CHARACTERS WITH HIGHLIGHT) -->
+      <div id="menu-screen-select" class="menu-screen">
+        <div class="menu-modal">
+          <div class="menu-modal-header">
+            <div>
+              <div class="menu-modal-title">HELDENAUSWAHL</div>
+              <div class="menu-modal-subtitle" id="char-select-count-label">Wähle deinen Streiter (0 / 5 Plätze belegt)</div>
+            </div>
+            <button class="hud-btn" onclick="window.GameUI.showMenuScreen('title')">ZURÜCK</button>
+          </div>
+
+          <div id="char-slot-list" class="char-slot-list"></div>
+
+          <div class="menu-modal-footer">
+            <button id="btn-new-char" class="menu-secondary-btn" onclick="window.GameUI.openCharacterCreation()">
+              + NEUER CHARAKTER
+            </button>
+            <button id="btn-play-selected" class="menu-primary-btn" onclick="window.GameUI.playSelectedCharacter()">
+              WELT BETRETEN
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCREEN 3: CHARACTER CREATION -->
+      <div id="menu-screen-create" class="menu-screen">
+        <div class="menu-modal">
+          <div class="menu-modal-header">
+            <div>
+              <div class="menu-modal-title">CHARAKTERERSTELLUNG</div>
+              <div class="menu-modal-subtitle">Erschaffe einen neuen Helden von Rabenstein</div>
+            </div>
+            <button id="btn-cancel-create" class="hud-btn" onclick="window.GameUI.cancelCharacterCreation()">ZURÜCK</button>
+          </div>
+
+          <div class="char-create-body">
+            <div class="char-create-preview-box">
+              <canvas id="char-create-preview-canvas" width="96" height="96"></canvas>
+              <div id="create-preview-title" class="create-preview-label">Klingenwächter</div>
+            </div>
+
+            <div class="char-create-form">
+              <label class="create-field-label" for="char-name-input">NAME DES HELDEN:</label>
+              <div class="name-input-row">
+                <input id="char-name-input" type="text" maxlength="18" placeholder="z.B. Vaelen" autocomplete="off" />
+                <button class="hud-btn" type="button" onclick="window.GameUI.randomizeCharName()" title="Zufälligen Namen würfeln">WÜRFELN</button>
+              </div>
+
+              <div class="create-field-label" style="margin-top: 10px;">KLASSE:</div>
+              <div id="archetype-grid" class="archetype-grid"></div>
+              <div id="create-error-msg" class="create-error-msg"></div>
+            </div>
+          </div>
+
+          <div class="menu-modal-footer">
+            <button class="menu-primary-btn" style="width: 100%;" onclick="window.GameUI.confirmCreateCharacter()">
+              CHARAKTER ERSTELLEN &amp; SPIEL STARTEN
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTROLS QUICK HINT (TOP EDGE) -->
+    <div id="controls-hint">
+      <b>Steuerung:</b> [WASD] Bewegen | <b>Auto-Attack</b> Nahkampf [F: Maus/Auto-Aim] | [Rechtsklick] Wirbelwind | [SPACE] Ausweichrolle | [K] Skill-Tree | [T] Stadtportal | [I] Inventar | [C] Charakter | [ESC] Fenster schließen / Menü
+    </div>
+
+    <!-- TOP BAR: ZONE & MINIMAP -->
+    <div id="top-bar">
+      <div class="zone-banner">
+        <div id="zone-title">FESTUNG RABENSTEIN (SICHERE BURG)</div>
+        <div id="quest-tracker">Quest: Sprich mit Chronist Aldric in der Festung Rabenstein</div>
+      </div>
+
+      <div id="minimap-wrapper">
+        <canvas id="minimap-canvas" width="150" height="110"></canvas>
+        <div class="minimap-controls">
+          <button id="btn-aim-mode" class="hud-btn-small" title="Auto-Attack Zielmodus umschalten (F)">ZIEL: MAUS (F)</button>
+          <button id="btn-loot-labels" class="hud-btn-small" title="Beute-Namen am Boden umschalten (ALT)">ALT: Beute AN</button>
+          <button id="btn-sound" class="hud-btn-small" title="Sound Effekte An/Aus">SFX: AN</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOSS HEALTH BAR -->
+    <div id="boss-bar-container" style="display: none;">
+      <div id="boss-name">MALAKOR DER BLUTDÄMON</div>
+      <div class="boss-hp-track">
+        <div id="boss-hp-fill"></div>
+      </div>
+    </div>
+
+    <!-- SYSTEM LOG (BOTTOM LEFT) -->
+    <div id="system-log">
+      <div class="syslog-header">CHRONIK &amp; SYSTEM-LOG</div>
+      <div id="system-log-entries"></div>
+    </div>
+
+    <!-- UNIFIED CHARACTER, EQUIPMENT & INVENTORY WINDOW -->
+    <div id="char-panel" class="window-panel">
+      <div class="window-header char-window-header">
+        <div class="char-header-title">
+          <span class="char-crest-badge">⚔</span>
+          <span class="window-title">HELD, AUSRÜSTUNG &amp; INVENTAR (C / I)</span>
+        </div>
+        <div class="char-header-actions">
+          <button class="hud-btn char-skilltree-btn" onclick="window.GameUI.togglePanel('skilltree-panel')">SKILL-TREE (K)</button>
+          <button class="close-btn" onclick="window.GameUI.togglePanel('char-panel')">X</button>
+        </div>
+      </div>
+      <div class="char-sheet-grid">
+        <div class="char-col char-col-stats">
+          <div class="char-section-title">CHARAKTER &amp; ATTRIBUTE</div>
+          <div class="stat-list" id="char-stats-content"></div>
+        </div>
+        <div class="char-col char-col-equip">
+          <div class="char-section-title">AUSRÜSTUNG</div>
+          <div class="equip-paperdoll-wrap">
+            <div class="equip-silhouette" aria-hidden="true"></div>
+            <div class="equip-grid" id="equip-grid"></div>
+          </div>
+        </div>
+        <div class="char-col char-col-inv">
+          <div class="char-section-title">
+            <span>INVENTAR</span>
+            <button class="char-sort-btn" id="btn-sort-inv" onclick="window.GameUI.sortInventoryByQuality()" title="Nach Qualität sortieren (Unique → Selten → Magisch → Gewöhnlich)">⇅ Qualität</button>
+          </div>
+          <div class="char-inv-hint">Ziehen: Verschieben / Ausrüsten • Klick: Aktion</div>
+          <div class="inv-grid" id="inv-grid"></div>
+          <div class="gold-row">
+            <span>GOLDMÜNZEN:</span>
+            <span id="inv-gold-amount">0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SKILL-TREE WINDOW (DANMAKU X AUTO-ATTACK PROGRESSION) -->
+    <div id="skilltree-panel" class="window-panel">
+      <div class="window-header">
+        <span class="window-title">SKILL-TREE: SCHATTENFLUT (K)</span>
+        <button class="close-btn" onclick="window.GameUI.togglePanel('skilltree-panel')">X</button>
+      </div>
+      <div class="skilltree-points-bar">
+        <span>Verfügbare Skillpunkte: <b id="skilltree-points-count" style="color: var(--gold);">0</b></span>
+        <span style="font-size: 15px; color: #a89f8d;">(+1 Punkt pro Level-Up | Respec bei Chronist Aldric)</span>
+      </div>
+      <div class="skilltree-columns" id="skilltree-content"></div>
+    </div>
+
+    <!-- NPC DIALOG & SHOP WINDOW -->
+    <div id="npc-panel" class="window-panel">
+      <div class="window-header">
+        <span class="window-title" id="npc-name">NPC</span>
+        <button class="close-btn" onclick="window.GameUI.closeNpcPanel()">X</button>
+      </div>
+      <div id="npc-text"></div>
+      <div id="npc-actions" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;"></div>
+      <div id="shop-section" style="display:none;">
+        <div class="shop-hint">Klicke auf einen Händler-Gegenstand zum Kaufen (oder auf dein Inventar rechts zum Verkaufen):</div>
+        <div class="inv-grid" id="shop-grid"></div>
+      </div>
+    </div>
+
+    <!-- BOTTOM ACTION HUD -->
+    <div id="bottom-hud">
+      <!-- HEALTH ORB -->
+      <div class="orb-container" title="Lebenspunkte (HP)">
+        <div id="hp-orb-fill" class="orb-fill"></div>
+        <div class="orb-shine"></div>
+        <div class="orb-text">
+          <span>HP</span>
+          <span id="hp-text">100/100</span>
+        </div>
+      </div>
+
+      <!-- SKILLS, TRÄNKE, PORTAL & XP -->
+      <div class="center-bar">
+        <div id="xp-bar-wrap">
+          <div id="xp-bar-label">LVL 1 KLINGENWÄCHTER</div>
+          <div id="xp-bar-fill"></div>
+        </div>
+        <div class="skill-row">
+          <div class="skill-slot active" id="skill-slot-0" onclick="window.Game.useSkillSlot(0)"
+            title="[Auto-Attack] Klingensturm: Führt automatisch schnelle Nahkampf-Schwerthiebe aus (0 Mana)">
+            <span class="hotkey-badge">AUTO</span>
+            <canvas id="icon-skill-0" width="32" height="32"></canvas>
+            <div class="cooldown-overlay" id="cd-skill-0"></div>
+          </div>
+          <div class="skill-slot locked" id="skill-slot-1" onclick="window.Game.useSkillSlot(1)"
+            title="[Rechte Maustaste] Wirbelwind: 360°-Schwertwirbel im Nahkampf (Kostet 12 Mana – Im Skill-Tree [K] freischalten)">
+            <span class="hotkey-badge">RM</span>
+            <canvas id="icon-skill-1" width="32" height="32"></canvas>
+            <span class="mana-cost-badge" id="mana-skill-1">12 MP</span>
+            <span class="lock-badge" id="lock-skill-1">K</span>
+            <div class="cooldown-overlay" id="cd-skill-1"></div>
+          </div>
+
+          <div class="skill-slot utility-gap potion-hp" id="potion-slot-hp" onclick="window.Game.usePotion('hp')"
+            title="[Q] Heiltrank trinken (+60% HP) – Füllt sich in der Burg automatisch auf!">
+            <span class="hotkey-badge">Q</span>
+            <canvas id="icon-pot-hp" width="32" height="32"></canvas>
+            <span class="count-badge" id="count-pot-hp">4/4</span>
+          </div>
+          <div class="skill-slot potion-mp" id="potion-slot-mp" onclick="window.Game.usePotion('mp')"
+            title="[E] Manatrank trinken (+65% Mana) – Füllt sich in der Burg automatisch auf!">
+            <span class="hotkey-badge">E</span>
+            <canvas id="icon-pot-mp" width="32" height="32"></canvas>
+            <span class="count-badge" id="count-pot-mp">4/4</span>
+          </div>
+          <div class="skill-slot portal-slot" id="portal-slot" onclick="window.Game.toggleTownPortal()"
+            title="[T] Stadtportal öffnen (60 Sek. Abklingzeit)">
+            <span class="hotkey-badge">T</span>
+            <canvas id="icon-portal" width="32" height="32"></canvas>
+            <span class="count-badge" id="portal-cd-text"></span>
+            <div class="cooldown-overlay" id="cd-portal"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MANA ORB -->
+      <div class="orb-container" title="Manapunkte (MP)">
+        <div id="mp-orb-fill" class="orb-fill"></div>
+        <div class="orb-shine"></div>
+        <div class="orb-text">
+          <span>MP</span>
+          <span id="mp-text">50/50</span>
+        </div>
+      </div>
+
+      <!-- MENU BUTTONS -->
+      <div class="menu-buttons">
+        <button class="hud-btn" id="btn-char-hud" onclick="window.GameUI.togglePanel('char-panel')">HELD &amp; INV (C)</button>
+        <button class="hud-btn" id="btn-skilltree-hud" onclick="window.GameUI.togglePanel('skilltree-panel')">SKILLS (K)</button>
+      </div>
+    </div>
+
+    <!-- ESC GAME MENU -->
+    <div id="esc-menu" class="window-panel">
+      <div class="window-header">
+        <span class="window-title">SPIELMENÜ</span>
+        <button class="close-btn" onclick="window.GameUI.closePanel('esc-menu')">X</button>
+      </div>
+      <div class="esc-menu-buttons">
+        <button class="menu-primary-btn" onclick="window.GameUI.saveGameFromEscMenu()">SPEICHERN</button>
+        <button class="menu-secondary-btn" onclick="window.GameUI.returnToMainMenu()">ZURÜCK ZUM HAUPTMENÜ</button>
+      </div>
+      <div id="esc-save-status"></div>
+      <div class="esc-menu-hint">[ESC] Weiterspielen</div>
+    </div>
+
+    <!-- DEATH PENALTY POPUP -->
+    <div id="death-modal" class="window-panel">
+      <div class="window-header">
+        <span class="window-title" style="color: #ff5c5c;">DU BIST GESTORBEN</span>
+      </div>
+      <div id="death-modal-body" class="death-modal-body"></div>
+      <div style="display: flex; gap: 10px; margin-top: 12px;">
+        <button id="btn-respawn-portal" class="menu-primary-btn" style="flex: 1;" onclick="window.GameUI.respawnAtPortal()">Respawn am Portal</button>
+        <button id="btn-respawn-castle" class="menu-primary-btn" style="flex: 1;" onclick="window.GameUI.respawnInCastle()">Respawn in der Burg</button>
+      </div>
+    </div>
+
+    <!-- ITEM TOOLTIP -->
+    <div id="item-tooltip"></div>
+  </div>
+
+  <script src="js/audio.js"></script>
+  <script src="js/sprites.js"></script>
+  <script src="js/items.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/game.js"></script>
+</body>
+
+</html>
